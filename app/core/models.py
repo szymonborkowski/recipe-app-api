@@ -1,0 +1,45 @@
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, \
+                                        PermissionsMixin
+
+
+class UserManager(BaseUserManager):
+
+    def create_user(self, email, password=None, **extra_fields):
+        """ Creates and saves a new user"""
+        if not email:
+            raise ValueError("Users must have an email address.")
+
+        # normalize_email() is a helper function that comes with the
+        # BaseUserManager. (z is necessary)
+
+        # creates new user model
+        user = self.model(email=self.normalize_email(email), **extra_fields)
+        user.set_password(password)  # sets the password
+        user.save(using=self._db)  # saves the model
+
+        return user  # returns the user model
+
+    # because we create the superuser in the commandline we
+    # don't need **extra_fields
+    def create_superuser(self, email, password):
+        """Creates and saves a new super user"""
+        user = self.create_user(email, password)  # creates same user as above
+        user.is_superuser = True
+        user.is_staff = True
+        user.save(using=self._db)
+
+        return user
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    """Custom user model that supports using email instead of username"""
+    email = models.EmailField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)  # checks if users are active
+    is_staff = models.BooleanField(default=False)  # a user will not be a staff
+    # user by default
+
+    objects = UserManager()
+
+    USERNAME_FIELD = 'email'
